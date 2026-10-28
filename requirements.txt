@@ -1,5 +1,4 @@
-# FinanzFlow PWA - Requisitos para Despliegue en Streamlit Community Cloud
-# Compatible con Python 3.9, 3.10, 3.11, 3.12+
+# FinanzFlow PWA - Requisitos de Ejecución
+# Ejecución local: Opera 100% con la Biblioteca Estándar de Python (no requiere pip).
+# Despliegue en Streamlit Cloud: Requiere streamlit.
 streamlit>=1.30.0
-qrcode>=7.4.2
-Pillow>=10.0.0
