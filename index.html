@@ -68,6 +68,9 @@
           <span>Contraseña: <code>admin123</code></span>
         </div>
         <div class="hint-note">Desde el panel de Administrador General podrás crear usuarios adicionales con su propio usuario, contraseña y datos 100% individuales.</div>
+        <button type="button" class="btn btn-secondary btn-block" onclick="AuthModule.resetAdminCredentials()" style="margin-top: 10px; padding: 8px 12px; font-size: 0.85rem; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.4); color: #60a5fa; cursor: pointer; border-radius: 8px; width: 100%;">
+          ⚡ Restablecer Credenciales de Admin (admin / admin123)
+        </button>
       </div>
     </div>
   </div>
@@ -99,6 +102,11 @@
         <button class="pin-keypad-btn" data-val="clear" title="Borrar todo" style="font-size: 1rem;">C</button>
         <button class="pin-keypad-btn" data-val="0">0</button>
         <button class="pin-keypad-btn" data-val="backspace" title="Retroceder" style="font-size: 1.1rem;">⌫</button>
+      </div>
+      <div style="text-align: center; margin-top: 10px;">
+        <button type="button" onclick="AuthModule.resetAdminCredentials()" style="background:transparent; border:none; color:#60a5fa; font-size:0.82rem; cursor:pointer; text-decoration:underline;">
+          ¿Olvidaste tu PIN? Restablecer como Administrador
+        </button>
       </div>
     </div>
   </div>

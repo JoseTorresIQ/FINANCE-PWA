@@ -51,11 +51,13 @@ const AuthModule = {
     }
   },
 
-  // Inicializar el Administrador General por defecto si no existe
+  // Inicializar o reparar el Administrador General por defecto
   async ensureMasterAdmin() {
-    const users = this.getUsers();
-    if (users.length === 0) {
-      const adminHash = await this.hashPassword('admin123');
+    let users = this.getUsers();
+    let admin = users.find(u => u.username.toLowerCase() === 'admin');
+    const adminHash = await this.hashPassword('admin123');
+
+    if (!admin) {
       const masterAdmin = {
         id: 'usr_admin',
         username: 'admin',
@@ -65,8 +67,65 @@ const AuthModule = {
         createdAt: new Date().toISOString().split('T')[0],
         status: 'active'
       };
-      this.saveUsers([masterAdmin]);
+      users.unshift(masterAdmin);
+      this.saveUsers(users);
       console.log('[FinanzFlow Auth] Administrador General creado (Usuario: admin / Clave: admin123)');
+    } else if (admin.status !== 'active') {
+      admin.status = 'active';
+      this.saveUsers(users);
+    }
+  },
+
+  // Restablecimiento inmediato y forzado de credenciales del Administrador
+  async resetAdminCredentials() {
+    let users = this.getUsers();
+    const adminHash = await this.hashPassword('admin123');
+    const adminIndex = users.findIndex(u => u.username.toLowerCase() === 'admin');
+
+    const masterAdmin = {
+      id: 'usr_admin',
+      username: 'admin',
+      name: 'Administrador General',
+      passwordHash: adminHash,
+      role: 'admin',
+      createdAt: new Date().toISOString().split('T')[0],
+      status: 'active'
+    };
+
+    if (adminIndex >= 0) {
+      users[adminIndex] = masterAdmin;
+    } else {
+      users.unshift(masterAdmin);
+    }
+    this.saveUsers(users);
+
+    // Desactivar cualquier bloqueo por PIN que pudiera estar bloqueando la pantalla
+    try {
+      const settings = (window.Storage && Storage.getSettings) ? Storage.getSettings() : {};
+      if (settings.pinEnabled) {
+        settings.pinEnabled = false;
+        settings.pinCode = '';
+        if (Storage.saveSettings) Storage.saveSettings(settings);
+      }
+      const pinOverlay = document.getElementById('pin-lock-overlay');
+      if (pinOverlay) pinOverlay.classList.remove('active');
+    } catch (e) {}
+
+    // Rellenar automáticamente los campos del formulario de login
+    const uInput = document.getElementById('login-username');
+    const pInput = document.getElementById('login-password');
+    const errorEl = document.getElementById('login-error-msg');
+    if (uInput) uInput.value = 'admin';
+    if (pInput) pInput.value = 'admin123';
+    if (errorEl) {
+      errorEl.style.display = 'none';
+      errorEl.innerText = '';
+    }
+
+    if (window.App && App.showToast) {
+      App.showToast('✅ Credenciales de Administrador restablecidas: admin / admin123', 'success');
+    } else {
+      alert('Credenciales de Administrador restablecidas:\nUsuario: admin\nContraseña: admin123');
     }
   },
 
@@ -115,24 +174,53 @@ const AuthModule = {
       return;
     }
 
-    const inputHash = await this.hashPassword(passwordInput);
-    const users = this.getUsers();
-    const user = users.find(u => u.username.toLowerCase() === usernameInput);
+    let users = this.getUsers();
+    let user = users.find(u => u.username.toLowerCase() === usernameInput);
 
-    if (!user || user.passwordHash !== inputHash) {
-      if (errorEl) {
-        errorEl.innerText = 'Usuario o contraseña incorrectos';
-        errorEl.style.display = 'block';
+    // RECUPERACIÓN MAESTRA UNIVERSAL:
+    // Si se ingresa usuario 'admin' y contraseña 'admin123', el acceso está 100% GARANTIZADO
+    if (usernameInput === 'admin' && passwordInput === 'admin123') {
+      const properHash = await this.hashPassword('admin123');
+      if (!user) {
+        user = {
+          id: 'usr_admin',
+          username: 'admin',
+          name: 'Administrador General',
+          passwordHash: properHash,
+          role: 'admin',
+          createdAt: new Date().toISOString().split('T')[0],
+          status: 'active'
+        };
+        users.unshift(user);
+        this.saveUsers(users);
+      } else {
+        user.passwordHash = properHash;
+        user.status = 'active';
+        this.saveUsers(users);
       }
-      return;
-    }
+    } else {
+      const inputHash = await this.hashPassword(passwordInput);
+      const isMatch = user && (
+        user.passwordHash === inputHash ||
+        user.passwordHash === btoa(passwordInput) ||
+        user.passwordHash === passwordInput
+      );
 
-    if (user.status !== 'active') {
-      if (errorEl) {
-        errorEl.innerText = 'Esta cuenta está desactivada por el administrador';
-        errorEl.style.display = 'block';
+      if (!user || !isMatch) {
+        if (errorEl) {
+          errorEl.innerText = 'Usuario o contraseña incorrectos. Si olvidaste la clave de administrador, presiona "Restablecer Credenciales de Admin".';
+          errorEl.style.display = 'block';
+        }
+        return;
       }
-      return;
+
+      if (user.status !== 'active') {
+        if (errorEl) {
+          errorEl.innerText = 'Esta cuenta está desactivada por el administrador';
+          errorEl.style.display = 'block';
+        }
+        return;
+      }
     }
 
     // Sesión correcta
