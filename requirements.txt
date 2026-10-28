@@ -1,0 +1,5 @@
+# FinanzFlow PWA - Requisitos para Despliegue en Streamlit Community Cloud
+# Compatible con Python 3.9, 3.10, 3.11, 3.12+
+streamlit>=1.30.0
+qrcode>=7.4.2
+Pillow>=10.0.0
